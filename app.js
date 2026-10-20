@@ -151,7 +151,7 @@
   }
 
   /**
-   * Generate a distinct, high-visibility color on #0D0914 dark background
+   * Generate a distinct, high-visibility color on #0B0F19 dark background
    * using Golden Angle (137.50776°) distribution so any number of samples are clearly separated.
    */
   function generateDynamicColor(index, isBlank = false) {
@@ -2015,7 +2015,7 @@
           `รอบการวัด (Cycle Loop): <b>#%{customdata[1]}</b><br>` +
           `โหมด (Mode): <b>%{customdata[2]}</b><br>` +
           `เวลา (Time): <b>%{customdata[3]}</b><br>` +
-          `<span style="color:#C084FC">X (${axisTitleX}):</span> <b>%{x:.4f}</b><br>` +
+          `<span style="color:#38BDF8">X (${axisTitleX}):</span> <b>%{x:.4f}</b><br>` +
           `<span style="color:#34D399">Y (${axisTitleY}):</span> <b>%{y:.4f}</b><br>` +
           `<span style="color:#F472B6">Z (${axisTitleZ}):</span> <b>%{z:.4f}</b>` +
           `<extra></extra>`
@@ -2187,8 +2187,8 @@
 
       const layout = {
         uirevision: 'constant',
-        paper_bgcolor: '#0D0914',
-        plot_bgcolor: '#0D0914',
+        paper_bgcolor: '#0B0F19',
+        plot_bgcolor: '#0B0F19',
         margin: { l: 0, r: 0, t: 0, b: 0 },
         font: {
           family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif",
@@ -2196,7 +2196,7 @@
         },
         hoverlabel: {
           bgcolor: 'rgba(15, 23, 42, 0.96)',
-          bordercolor: 'rgba(192, 132, 252, 0.55)',
+          bordercolor: 'rgba(56, 189, 248, 0.55)',
           font: {
             family: "'JetBrains Mono', 'Noto Sans Thai', monospace",
             size: 12,
@@ -2205,14 +2205,14 @@
         },
         scene: {
           uirevision: 'constant',
-          bgcolor: '#0D0914',
+          bgcolor: '#0B0F19',
           dragmode: 'orbit',
           camera: state.currentCamera,
           aspectmode: 'cube',
           xaxis: {
-            title: { text: `X: ${axisTitleX}`, font: { size: 12, color: '#C084FC' } },
+            title: { text: `X: ${axisTitleX}`, font: { size: 12, color: '#38BDF8' } },
             gridcolor: 'rgba(148, 163, 184, 0.14)',
-            zerolinecolor: 'rgba(192, 132, 252, 0.35)',
+            zerolinecolor: 'rgba(56, 189, 248, 0.35)',
             showbackground: true,
             backgroundcolor: 'rgba(17, 24, 39, 0.55)',
             tickfont: { family: "'JetBrains Mono', monospace", size: 10, color: '#94A3B8' }
@@ -2320,7 +2320,7 @@
           size: Math.max(6, state.markerSize + 2),
           color: s.color,
           opacity: 0.9,
-          line: { width: 0.8, color: '#0D0914' }
+          line: { width: 0.8, color: '#0B0F19' }
         },
         hovertemplate:
           `<b>${s.shapeIcon || '●'} %{customdata[0]}</b> (Loop #%{customdata[1]} • %{customdata[2]})<br>` +
@@ -2350,15 +2350,15 @@
     }
 
     const layout = {
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 64, r: 28, t: 56, b: 54 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       legend: { orientation: 'h', y: 1.08, x: 0.5, xanchor: 'center', font: { size: 11 } },
       xaxis: {
-        title: { text: `X: ${axisTitleX}`, font: { size: 12, color: '#C084FC' } },
+        title: { text: `X: ${axisTitleX}`, font: { size: 12, color: '#38BDF8' } },
         gridcolor: 'rgba(148, 163, 184, 0.14)',
-        zerolinecolor: 'rgba(192, 132, 252, 0.35)'
+        zerolinecolor: 'rgba(56, 189, 248, 0.35)'
       },
       yaxis: {
         title: { text: `Y: ${axisTitleY}`, font: { size: 12, color: '#34D399' } },
@@ -2604,16 +2604,16 @@
         text: `🧭 2D PCA Biplot — Score Centroids & Sensor Loading Vectors (PC1 ${v1Pct.toFixed(1)}% vs PC2 ${v2Pct.toFixed(1)}%)`,
         font: { size: 13.5, color: '#F8FAFC' }
       },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 60, r: 28, t: 50, b: 50 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       legend: { orientation: 'h', y: -0.14, x: 0.5, xanchor: 'center', font: { size: 10.5 } },
       annotations,
       xaxis: {
-        title: { text: `PC1 (${v1Pct.toFixed(1)}%)`, font: { size: 12, color: '#C084FC' } },
+        title: { text: `PC1 (${v1Pct.toFixed(1)}%)`, font: { size: 12, color: '#38BDF8' } },
         gridcolor: 'rgba(148, 163, 184, 0.14)',
-        zerolinecolor: 'rgba(192, 132, 252, 0.4)'
+        zerolinecolor: 'rgba(56, 189, 248, 0.4)'
       },
       yaxis: {
         title: { text: `PC2 (${v2Pct.toFixed(1)}%)`, font: { size: 12, color: '#34D399' } },
@@ -2645,7 +2645,7 @@
           const power2d = Math.sqrt(w1 * w1 + w2 * w2);
           return `
             <tr data-biplotsensor="${escapeHtml(col)}" style="cursor:pointer; opacity:${isVectorVisible ? '1' : '0.45'};" title="คลิกเพื่อเปิด/ปิดเส้นเวกเตอร์ ${escapeHtml(col)} บนกราฟ Biplot">
-              <td><strong style="color:${isVectorVisible ? '#C084FC' : '#64748B'};">${isVectorVisible ? '● ' : '○ '}${escapeHtml(col)}</strong></td>
+              <td><strong style="color:${isVectorVisible ? '#38BDF8' : '#64748B'};">${isVectorVisible ? '● ' : '○ '}${escapeHtml(col)}</strong></td>
               <td style="color:${Math.abs(w1) >= 0.3 ? '#6EE7B7' : '#F8FAFC'}">${w1 >= 0 ? '+' : ''}${w1.toFixed(3)}</td>
               <td style="color:${Math.abs(w2) >= 0.3 ? '#6EE7B7' : '#F8FAFC'}">${w2 >= 0 ? '+' : ''}${w2.toFixed(3)}</td>
               <td style="color:${Math.abs(w3) >= 0.3 ? '#F472B6' : '#94A3B8'}">${w3 >= 0 ? '+' : ''}${w3.toFixed(3)}</td>
@@ -2708,8 +2708,8 @@
         text: expVars.map(v => `${v.toFixed(1)}%`),
         textposition: 'auto',
         marker: {
-          color: expVars.map((_, i) => (i < 3 ? '#C084FC' : 'rgba(192, 132, 252, 0.38)')),
-          line: { color: '#7E22CE', width: 1 }
+          color: expVars.map((_, i) => (i < 3 ? '#38BDF8' : 'rgba(56, 189, 248, 0.38)')),
+          line: { color: '#0284C7', width: 1 }
         },
         hovertemplate: `<b>%{x}</b><br>Individual Variance: <b>%{y:.2f}%</b><extra></extra>`
       },
@@ -2733,8 +2733,8 @@
         text: `📊 Scree Plot & Cumulative Explained Variance — 2D (PC1+PC2 = ${(pca.cumulativeVariance2D || 0).toFixed(1)}%) • 3D (PC1–PC3 = ${(pca.cumulativeVariance || 0).toFixed(1)}%)`,
         font: { size: 13.5, color: '#F8FAFC' }
       },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 64, r: 36, t: 54, b: 54 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       legend: { orientation: 'h', y: 1.08, x: 0.5, xanchor: 'center' },
@@ -2766,7 +2766,7 @@
         gridcolor: 'rgba(148, 163, 184, 0.12)'
       },
       yaxis: {
-        title: { text: 'Explained Variance (%)', font: { size: 12, color: '#C084FC' } },
+        title: { text: 'Explained Variance (%)', font: { size: 12, color: '#38BDF8' } },
         range: [0, 106],
         gridcolor: 'rgba(148, 163, 184, 0.14)'
       }
@@ -2856,8 +2856,8 @@
         text: `🕸️ Odor Fingerprint Radar Chart — ${scaleTitleMap[state.radarScale] || ''} (${activeSensors.length} Active Sensors)`,
         font: { size: 13.5, color: '#F8FAFC' }
       },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 60, r: 60, t: 54, b: 44 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       legend: { orientation: 'v', x: 1.02, y: 0.95, font: { size: 11 } },
@@ -2865,8 +2865,8 @@
         bgcolor: 'rgba(17, 24, 39, 0.65)',
         angularaxis: {
           gridcolor: 'rgba(148, 163, 184, 0.22)',
-          linecolor: 'rgba(192, 132, 252, 0.4)',
-          tickfont: { family: "'JetBrains Mono', monospace", size: 11.5, color: '#C084FC' }
+          linecolor: 'rgba(56, 189, 248, 0.4)',
+          tickfont: { family: "'JetBrains Mono', monospace", size: 11.5, color: '#38BDF8' }
         },
         radialaxis: {
           gridcolor: 'rgba(148, 163, 184, 0.18)',
@@ -2946,13 +2946,13 @@
         text: `🔥 Sensor Fingerprint Heatmap — Mean Z-Score Matrix (${yLabels.length} Samples × ${activeSensors.length} Active Sensors)`,
         font: { size: 13.5, color: '#F8FAFC' }
       },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 130, r: 40, t: 52, b: 56 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       xaxis: {
-        title: { text: 'Active Gas Sensors (Auto-Cleaned)', font: { size: 12, color: '#C084FC' } },
-        tickfont: { family: "'JetBrains Mono', monospace", size: 11, color: '#C084FC' }
+        title: { text: 'Active Gas Sensors (Auto-Cleaned)', font: { size: 12, color: '#38BDF8' } },
+        tickfont: { family: "'JetBrains Mono', monospace", size: 11, color: '#38BDF8' }
       },
       yaxis: {
         autorange: 'reversed',
@@ -3146,8 +3146,8 @@
           : `📈 Multi-Sensor Response Curve (${dsKey}_*) — Sample: ${(state.sampleMap[state.tsSample]?.label) || state.tsSample}`,
         font: { size: 13.5, color: '#F8FAFC' }
       },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 64, r: 28, t: 52, b: 52 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       legend: { orientation: 'h', y: 1.08, x: 0.5, xanchor: 'center', font: { size: 10.5 } },
@@ -3157,7 +3157,7 @@
         gridcolor: 'rgba(148, 163, 184, 0.12)'
       },
       yaxis: {
-        title: { text: state.baselineCorrection ? 'Sensor Signal (ΔBlank)' : 'Raw Sensor Signal', font: { size: 12, color: '#C084FC' } },
+        title: { text: state.baselineCorrection ? 'Sensor Signal (ΔBlank)' : 'Raw Sensor Signal', font: { size: 12, color: '#38BDF8' } },
         gridcolor: 'rgba(148, 163, 184, 0.14)'
       }
     };
@@ -3213,17 +3213,17 @@
         name: 'Flow Rate (mL/min) Mean ± SD',
         x: sampleLabels,
         y: flowMeans,
-        error_y: { type: 'data', array: flowSds, visible: true, color: '#C084FC' },
-        line: { color: '#C084FC', width: 2.2 },
-        marker: { size: 7, color: '#C084FC', symbol: 'square' },
+        error_y: { type: 'data', array: flowSds, visible: true, color: '#38BDF8' },
+        line: { color: '#38BDF8', width: 2.2 },
+        marker: { size: 7, color: '#38BDF8', symbol: 'square' },
         yaxis: 'y2'
       }
     ];
 
     const envLayout = {
       title: { text: '🌡️ Environmental QC: Temperature (°C) & Flow Rate (mL/min) Stability', font: { size: 13, color: '#F8FAFC' } },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 58, r: 62, t: 52, b: 58 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       legend: { orientation: 'h', y: 1.09, x: 0.5, xanchor: 'center', font: { size: 10.5 } },
@@ -3234,8 +3234,8 @@
         gridcolor: 'rgba(148, 163, 184, 0.12)'
       },
       yaxis2: {
-        title: { text: 'Flow Rate (mL/min)', font: { size: 11.5, color: '#C084FC' } },
-        tickfont: { color: '#C084FC' },
+        title: { text: 'Flow Rate (mL/min)', font: { size: 11.5, color: '#38BDF8' } },
+        tickfont: { color: '#38BDF8' },
         overlaying: 'y',
         side: 'right'
       }
@@ -3273,13 +3273,13 @@
 
     const blankLayout = {
       title: { text: '⚪ Reference Blank Baseline Stability Across Active Sensors (Mean ± SD)', font: { size: 13, color: '#F8FAFC' } },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       barmode: 'group',
       margin: { l: 58, r: 28, t: 52, b: 58 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       legend: { orientation: 'h', y: 1.09, x: 0.5, xanchor: 'center', font: { size: 10.5 } },
-      xaxis: { title: { text: 'Active Gas Sensors', font: { size: 11.5, color: '#C084FC' } }, gridcolor: 'rgba(148, 163, 184, 0.12)' },
+      xaxis: { title: { text: 'Active Gas Sensors', font: { size: 11.5, color: '#38BDF8' } }, gridcolor: 'rgba(148, 163, 184, 0.12)' },
       yaxis: { title: { text: 'Baseline Sensor Response', font: { size: 11.5, color: '#34D399' } }, gridcolor: 'rgba(148, 163, 184, 0.12)' }
     };
 
@@ -3391,8 +3391,8 @@
         text: `📏 Pairwise Euclidean Distance Matrix (${state.distanceSpace === 'pca' ? 'PCA Space PC1–PC3' : 'Z-Score Sensor Space'})`,
         font: { size: 13, color: '#F8FAFC' }
       },
-      paper_bgcolor: '#0D0914',
-      plot_bgcolor: '#0D0914',
+      paper_bgcolor: '#0B0F19',
+      plot_bgcolor: '#0B0F19',
       margin: { l: 95, r: 28, t: 48, b: 60 },
       font: { family: "'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif", color: '#F8FAFC' },
       yaxis: { autorange: 'reversed' }
@@ -3499,8 +3499,8 @@
         }
 
         if (bannerDot && bannerText) {
-          bannerDot.style.background = '#C084FC';
-          bannerDot.style.boxShadow = '0 0 8px #C084FC';
+          bannerDot.style.background = '#38BDF8';
+          bannerDot.style.boxShadow = '0 0 8px #38BDF8';
           bannerText.textContent = 'คลิกค้างเพื่อหมุน 360° • เลื่อนลูกกลิ้งเพื่อซูม • คลิกขวาค้างเพื่อเลื่อนแกน (Pan)';
         }
         return;
