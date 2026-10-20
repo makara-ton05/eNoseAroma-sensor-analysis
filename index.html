@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCBT316 eNose 3D Analytics — Tea Aroma Sensor Dashboard</title>
+  <!-- Google Fonts: Plus Jakarta Sans, Noto Sans Thai, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- SheetJS (xlsx) for Multi-Sheet Excel Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Plotly.js for 3D Scatter (scatter3d) & 3D Convex Hull (mesh3d) -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ====================================================================
+       SITE TOP HEADER (HEAD)
+       ==================================================================== -->
+  <header class="site-top-header">
+    <div class="site-header-line site-header-line-1">Department of Biotechnology • Faculty of Science • Mahidol university</div>
+    <div class="site-header-line site-header-line-2">Protocol : Gas-Solid Adsorption and Sorbent Regeneration (R10-S120-P60-F200)</div>
+    <div class="site-header-line site-header-line-3">Author : Makara Aiamkham SCBT      student id : 6705245 </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <!-- ====================================================================
+         PART 1: WELCOME / LANDING SCREEN OVERLAY (BEFORE ENTERING DASHBOARD)
+         ==================================================================== -->
+    <div class="welcome-landing-overlay" id="welcomeLandingOverlay" role="dialog" aria-labelledby="welcomeLandingTitle">
+      <div class="welcome-landing-card">
+        <div class="welcome-brand-pill">
+          <span class="welcome-brand-dot"></span>
+          <span>SCBT316 eNose 3D • Aroma Sensor Analytics</span>
+        </div>
+
+        <h1 class="welcome-landing-title" id="welcomeLandingTitle">
+          ยินดีต้อนรับสู่เว็บไซต์คำนวณการวิเคราะห์ eNose
+        </h1>
+
+        <div class="welcome-upload-dropzone" id="welcomeUploadDropzone">
+          <input type="file" id="welcomeExcelFileInput" accept=".xlsx,.xls,.csv" aria-label="อัปโหลดไฟล์ Excel (.xlsx)" />
+          <div class="welcome-upload-icon-circle">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="welcome-upload-line-1">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span>อัปโหลดไฟล์ Excel ( .xlsx)</span>
+          </div>
+          <div class="welcome-upload-line-2">ไฟล์ข้อมูลที่ได้จาก eNose</div>
+          <div class="welcome-upload-formats">รองรับการคลิกเลือกไฟล์ หรือลากไฟล์มาวาง (.xlsx, .xls, .csv)</div>
+        </div>
+
+        <div class="welcome-landing-actions">
+          <button type="button" class="btn-welcome-secondary" id="btnWelcomeEnterDemo" title="เข้าสู่หน้าแดชบอร์ดทันทีโดยใช้ชุดข้อมูลตัวอย่าง (Demo Data)">
+            <span>▶ เข้าสู่หน้าวิเคราะห์ด้วยข้อมูลตัวอย่าง (Demo Data)</span>
+          </button>
+          <button type="button" class="btn-welcome-link" id="btnWelcomeDownloadDemo" title="ดาวน์โหลดไฟล์ Excel ตัวอย่าง (.xlsx) ลงเครื่อง">
+            <span>⬇ ดาวน์โหลดไฟล์ตัวอย่าง (.xlsx)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         LEFT CONTROL SIDEBAR (25% WIDTH) WITH SLIDING ARROW TOGGLE
+         ==================================================================== -->
+    <aside class="sidebar-panel" id="sidebarPanel">
+      <!-- Arrow Button to Slide Open/Close Left Filter Interface (Sections 1-4) -->
+      <button
+        type="button"
+        class="sidebar-slide-toggle"
+        id="btnToggleSidebar"
+        aria-expanded="true"
+        title="เปิด-ปิดแผงตัวกรองข้อมูลด้านซ้าย (หัวข้อ 1–4)"
+      >
+        <svg class="toggle-arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <header class="sidebar-header">
+        <div class="brand-group">
+          <div class="brand-icon" title="Electronic Nose 3D Analytics">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">
+              SCBT316 eNose 3D
+              <span class="badge" id="dataSourceBadge">DEMO DATA</span>
+            </div>
+            <div class="brand-subtitle">Aroma Sensor Analytics</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="sidebar-scroll" id="sidebarFilterContent">
+        <!-- 1. DATA PIPELINE & EXCEL UPLOAD -->
+        <section class="control-section" id="controlSection1">
+          <div class="section-header">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+              <span>1. Data Pipeline (.xlsx)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <button type="button" class="btn-link-sm" id="btnReopenWelcomeOverlay" title="เปิดหน้าต้อนรับเพื่ออัปโหลดไฟล์ใหม่">
+                🏠 หน้าแรก
+              </button>
+              <button type="button" class="btn-link-sm" id="btnDownloadDemoXlsx" title="ดาวน์โหลดไฟล์ตัวอย่างข้อมูลจากเครื่อง eNose (.xlsx)">
+                ⬇ ไฟล์ตัวอย่าง .xlsx
+              </button>
+            </div>
+          </div>
+
+          <div class="upload-dropzone" id="uploadDropzone">
+            <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" />
+            <div class="upload-icon-row">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span>อัปโหลดไฟล์ Excel (.xlsx)</span>
+            </div>
+            <div class="upload-hint" id="sidebarUploadHint">ไฟล์ข้อมูลที่ได้จาก eNose</div>
+            <div class="upload-active-file" id="sidebarActiveFileBadge" title="ชื่อไฟล์ข้อมูลที่กำลังเปิดใช้งาน">
+              📄 ไฟล์ปัจจุบัน: กำลังรอการอัปโหลด...
+            </div>
+          </div>
+
+          <div class="file-status-bar">
+            <div class="file-status-info">
+              <span class="file-status-label">ไฟล์ที่อัปโหลด:</span>
+              <span class="file-status-name" id="loadedFileName">กำลังรอการอัปโหลดไฟล์ .xlsx...</span>
+            </div>
+            <button type="button" class="btn-link-sm" id="btnInspectSheets" title="ตรวจสอบตาราง BlankAssignment และข้อมูลชีตที่ตรวจพบ">
+              BlankAssignment
+            </button>
+          </div>
+
+          <!-- Dataset Group Switcher: Sampling_* vs Raw_* -->
+          <div style="margin-top: 10px;">
+            <div class="filter-sublabel">
+              <span>ชุดข้อมูลหลัก (Dataset Group)</span>
+              <span id="datasetSheetCount" style="font-family: var(--font-mono); color: var(--accent-cyan);">0 ชีต</span>
+            </div>
+            <div class="segmented-control" id="datasetSegmented">
+              <button type="button" class="seg-btn" data-dataset="Sampling">
+                <span>Sampling_*</span>
+                <small>เฉพาะช่วงดูดกลิ่น</small>
+              </button>
+              <button type="button" class="seg-btn active" data-dataset="Raw">
+                <span>Raw_*</span>
+                <small>ข้อมูลดิบครบทุกโหมด (ค่าเริ่มต้น)</small>
+              </button>
+            </div>
+          </div>
+
+          <!-- Baseline Correction Toggle -->
+          <div class="toggle-row">
+            <div class="toggle-label-group">
+              <div class="toggle-title">
+                <span>Baseline Correction</span>
+                <span class="badge badge-emerald" id="baselineStatusBadge" style="display:none;">−Blank</span>
+              </div>
+              <div class="toggle-desc" id="baselineDescText">หักลบค่าสัญญาณพื้นหลัง (Blank) ตามตาราง BlankAssignment</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggleBaselineCorrection" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+
+          <!-- Per-Cycle Blank Subtraction Sub-Toggle -->
+          <div class="toggle-row" id="perCycleBlankRow" style="display:none; padding-top:6px; margin-top:6px;">
+            <div class="toggle-label-group">
+              <div class="toggle-title" style="font-size:11.5px;">
+                <span>Per-Cycle Blank Subtraction</span>
+                <span class="badge" style="font-size:9.5px;">Loop k − Blank k</span>
+              </div>
+              <div class="toggle-desc" style="font-size:10px;">หักลบ Blank รายรอบ (Cycle Loop เดียวกัน) ลดความคลาดเคลื่อนตามรอบ</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="togglePerCycleBlank" checked />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 2. 3D AXIS CONFIGURATION (CUSTOM SENSOR AXES vs 3D PCA) -->
+        <section class="control-section collapsible-section" id="controlSection2">
+          <div class="section-header collapsible-section-header" id="sectionHeader2">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 2v7"/>
+                <path d="M12 15v7"/>
+                <path d="M2 12h7"/>
+                <path d="M15 12h7"/>
+              </svg>
+              <span>2. กำหนดแกน 3 มิติ (X, Y, Z Axes)</span>
+            </div>
+            <button
+              type="button"
+              class="card-slide-toggle-btn section-slide-toggle-btn"
+              id="btnToggleSection2"
+              aria-expanded="true"
+              title="พับ/กางหัวข้อที่ 2: กำหนดแกน 3 มิติ"
+            >
+              <svg class="toggle-arrow-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <div class="section-collapsible-body" id="sectionBody2">
+            <div class="segmented-control" id="axisModeSegmented">
+              <button type="button" class="seg-btn" data-axismode="custom">
+                <span>Custom Sensors</span>
+                <small>เลือกเซนเซอร์อิสระ</small>
+              </button>
+              <button type="button" class="seg-btn active" data-axismode="pca">
+                <span>3D PCA Mode</span>
+                <small id="pcaSensorRangeLabel">ลดมิติข้อมูลอัตโนมัติ</small>
+              </button>
+            </div>
+
+            <!-- Custom Sensor Axes Panel -->
+            <div id="customAxesPanel" class="axis-selectors-grid" style="display: none;">
+              <div class="axis-select-row">
+                <span class="axis-tag axis-x">แกน X</span>
+                <select id="selectAxisX" class="select-input"></select>
+              </div>
+              <div class="axis-select-row">
+                <span class="axis-tag axis-y">แกน Y</span>
+                <select id="selectAxisY" class="select-input"></select>
+              </div>
+              <div class="axis-select-row">
+                <span class="axis-tag axis-z">แกน Z</span>
+                <select id="selectAxisZ" class="select-input"></select>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                <span style="font-size:10.5px; color:var(--text-secondary);" id="defaultAxesHintText">ค่าเริ่มต้นอัตโนมัติจากไฟล์</span>
+                <button type="button" class="btn-link-sm" id="btnResetDefaultAxes">รีเซ็ตแกนเริ่มต้น</button>
+              </div>
+            </div>
+
+            <!-- 3D PCA Mode Info Panel -->
+            <div id="pcaAxesPanel" class="pca-info-panel" style="display: block;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:11.5px; font-weight:600; color:var(--text-primary);">Cumulative Explained Variance (PC1–PC3)</span>
+                <span class="badge badge-emerald" id="pcaTotalVarianceBadge">0.0%</span>
+              </div>
+              <div class="pca-var-grid">
+                <div class="pca-var-card">
+                  <div class="pca-var-label">X: PC1</div>
+                  <div class="pca-var-val" id="pcaVar1">0.0%</div>
+                </div>
+                <div class="pca-var-card">
+                  <div class="pca-var-label">Y: PC2</div>
+                  <div class="pca-var-val" id="pcaVar2">0.0%</div>
+                </div>
+                <div class="pca-var-card">
+                  <div class="pca-var-label">Z: PC3</div>
+                  <div class="pca-var-val" id="pcaVar3">0.0%</div>
+                </div>
+              </div>
+
+              <!-- PCA Granularity Mode: All Time-Points vs Cycle Summary (Mean/Max/ΔMean/ΔMax) -->
+              <div style="margin-top: 10px;">
+                <div class="filter-sublabel" style="margin-bottom: 4px;">
+                  <span>ความละเอียดจุดข้อมูล (PCA Granularity Mode)</span>
+                </div>
+                <div class="segmented-control" id="pcaGranularitySegmented">
+                  <button type="button" class="seg-btn" data-granularity="all" title="พล็อตทุกแถวข้อมูลตามเวลาจริงเพื่อดูการกระจายตัวและเส้นทางการตอบสนองของเซนเซอร์">
+                    <span>All Time-Points</span>
+                    <small>พล็อตทุกจุดตามเวลาจริง</small>
+                  </button>
+                  <button type="button" class="seg-btn active" data-granularity="cycle" title="ยุบรวมข้อมูลในแต่ละรอบ (Cycle Loop) ให้เหลือ 1 จุดตัวแทนต่อ 1 รอบ">
+                    <span>Cycle Summary</span>
+                    <small>1 จุดตัวแทน / รอบ Cycle</small>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Cycle Summary Feature Extraction & Drift Correction (4 Methods) -->
+              <div id="pcaCycleSummaryMethodRow" style="display: block; margin-top: 8px;">
+                <div class="filter-sublabel" style="margin-bottom: 4px;">
+                  <span>สกัดค่าตัวแทน &amp; แก้ Drift (Cycle Feature Extraction)</span>
+                </div>
+                <div class="segmented-control segmented-grid-2x2" id="pcaSummaryMethodSegmented">
+                  <button type="button" class="seg-btn active" data-summarymethod="mean" title="ค่าเฉลี่ยสัญญาณเซนเซอร์ในช่วง Sampling ของแต่ละรอบ">
+                    <span>Mean (ค่าเฉลี่ย)</span>
+                    <small>ค่าเฉลี่ยในรอบนั้น</small>
+                  </button>
+                  <button type="button" class="seg-btn" data-summarymethod="max" title="ค่าสูงสุดสัญญาณเซนเซอร์ในช่วง Sampling ของแต่ละรอบ">
+                    <span>Max (ค่าสูงสุด)</span>
+                    <small>ค่าสูงสุดในรอบนั้น</small>
+                  </button>
+                  <button type="button" class="seg-btn" data-summarymethod="delta_mean" title="ค่าเฉลี่ยช่วง Sampling ลบค่าเฉลี่ยช่วง Resting ของรอบเดียวกันจาก Raw_* เพื่อกำจัด Baseline Drift">
+                    <span>ΔMean (Samp − Rest)</span>
+                    <small>หักลบ Resting รายรอบ</small>
+                  </button>
+                  <button type="button" class="seg-btn" data-summarymethod="delta_max" title="ค่าสูงสุดช่วง Sampling ลบค่าเฉลี่ยช่วง Resting ของรอบเดียวกันจาก Raw_*">
+                    <span>ΔMax (Max − Rest)</span>
+                    <small>พีคสูงสุดหักลบ Resting</small>
+                  </button>
+                </div>
+              </div>
+
+              <!-- PCA Recalculation Toggle: Global PCA vs Dynamic Re-fit on Active Samples -->
+              <div style="margin-top: 10px;">
+                <div class="filter-sublabel" style="margin-bottom: 4px;">
+                  <span>การคำนวณแกน PCA (PCA Recalculation Scope)</span>
+                </div>
+                <div class="segmented-control" id="pcaFitScopeSegmented">
+                  <button type="button" class="seg-btn" data-fitscope="global" title="คำนวณแกน PCA จากข้อมูลทุกชนิดรวมกัน (Global PCA)">
+                    <span>Global PCA</span>
+                    <small>คำนวณจากทุกชนิดรวมกัน</small>
+                  </button>
+                  <button type="button" class="seg-btn active" data-fitscope="active" title="คำนวณแกน PCA ใหม่เฉพาะชนิดตัวอย่างที่กดเปิดแสดงผลอยู่ (Dynamic Re-fit PCA)">
+                    <span>Active Re-fit PCA</span>
+                    <small>เฉพาะชนิดที่เปิดดู</small>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Exclude Blanks from PCA Basis -->
+              <div class="toggle-row" style="padding-top:8px; margin-top:8px;">
+                <div class="toggle-label-group">
+                  <div class="toggle-title" style="font-size:11.5px;">Exclude Blanks from PCA Basis</div>
+                  <div class="toggle-desc" style="font-size:10px;">คำนวณแกน PC1–PC3 จากตัวอย่างโดยไม่ให้ Blank ดึงแกนความแปรปรวน</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="toggleExcludeBlanksPca" checked />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <!-- Auto-Clean Zero Variance & Z-Score Standardization -->
+              <div class="toggle-row" style="padding-top:8px; margin-top:8px;">
+                <div class="toggle-label-group">
+                  <div class="toggle-title" style="font-size:11.5px;">Z-Score Standardization ((X − μ) / σ)</div>
+                  <div class="toggle-desc" style="font-size:10px;">ตัดเซนเซอร์ที่ Variance = 0 อัตโนมัติ และปรับสเกลมาตรฐาน</div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="togglePcaStandardize" checked />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="pca-loadings-note" id="pcaAutoCleanNote" style="color:var(--accent-cyan); margin-top:6px;">
+                ตรวจสอบเซนเซอร์ (Auto-Clean Variance &gt; 0)...
+              </div>
+              <div class="pca-loadings-note" id="pcaLoadingsNote">
+                กำลังคำนวณ Principal Components...
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. DYNAMIC SAMPLE CLASSES & REACTIVE FILTER UI -->
+        <section class="control-section collapsible-section" id="controlSection3">
+          <div class="section-header collapsible-section-header" id="sectionHeader3">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/>
+                <polyline points="2 12 12 17 22 12"/>
+              </svg>
+              <span>3. รายการชนิดตัวอย่าง (Sample Toggles)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="badge" id="activeSampleCountBadge">0 / 0</span>
+              <button
+                type="button"
+                class="card-slide-toggle-btn section-slide-toggle-btn"
+                id="btnToggleSection3"
+                aria-expanded="true"
+                title="พับ/กางหัวข้อที่ 3: รายการชนิดตัวอย่าง"
+              >
+                <svg class="toggle-arrow-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="section-collapsible-body" id="sectionBody3">
+            <!-- Detected Samples & Blanks Summary Counter -->
+            <div class="detected-summary-banner" id="detectedSampleSummaryBanner">
+              กำลังสแกนชนิดตัวอย่างและข้อมูลอ้างอิง (Blanks)...
+            </div>
+
+            <!-- Quick Group Action Buttons (Select All / Clear All + Dynamic Groups from BlankAssignment / Date) -->
+            <div class="quick-actions-grid" id="dynamicGroupActionsContainer">
+              <button type="button" class="quick-btn" id="btnSelectAllSamples">
+                <span>✓ เปิดทั้งหมด (Select All)</span>
+              </button>
+              <button type="button" class="quick-btn" id="btnClearAllSamples">
+                <span>✕ ปิดทั้งหมด (Clear All)</span>
+              </button>
+            </div>
+
+            <!-- Search Input for Sample Names -->
+            <div class="sample-search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sample-search-icon">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                id="sampleSearchInput"
+                class="sample-search-input"
+                placeholder="ค้นหาชื่อตัวอย่าง หรือ Blank..."
+                autocomplete="off"
+              />
+              <button type="button" class="sample-search-clear" id="btnClearSampleSearch" style="display:none;" title="ล้างคำค้นหา">✕</button>
+            </div>
+
+            <div class="sample-hint-banner">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; color:var(--accent-cyan);">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <span>ชี้เมาส์เพื่อทำ <strong>Focus Highlight</strong> • กดปุ่ม <strong>✎</strong> เพื่อแก้ไขชื่อตัวอย่าง</span>
+            </div>
+
+            <!-- Scrollable Container for Dynamic Samples & Blanks -->
+            <div class="sample-toggles-scroll-area" id="sampleTogglesContainer"></div>
+          </div>
+        </section>
+
+        <!-- 4. DYNAMIC CYCLE LOOP & MODE FILTER -->
+        <section class="control-section collapsible-section" id="controlSection4">
+          <div class="section-header collapsible-section-header" id="sectionHeader4">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              <span>4. ตัวกรองรอบและโหมด (Cycle &amp; Mode)</span>
+            </div>
+            <button
+              type="button"
+              class="card-slide-toggle-btn section-slide-toggle-btn"
+              id="btnToggleSection4"
+              aria-expanded="true"
+              title="พับ/กางหัวข้อที่ 4: ตัวกรองรอบและโหมด"
+            >
+              <svg class="toggle-arrow-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <div class="section-collapsible-body" id="sectionBody4">
+            <!-- Dynamic Cycle Loop with Warm-up Exclusion & Cycles 3-5 Quick Buttons -->
+            <div class="filter-sublabel">
+              <span id="cycleFilterLabel">รอบการวัด (Cycle Loop)</span>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-link-sm btn-warmup-cut" id="btnExcludeFirstCycle" title="ตัดรอบแรก (Cycle 1 Warm-up / First-Cycle Effect) ออกด้วยคลิกเดียว">
+                  ⚡ ตัดรอบแรก (Loops 2–7)
+                </button>
+                <button type="button" class="btn-link-sm active" id="btnSelectCycles3to5" title="กรองเฉพาะรอบการวัดที่ 3, 4 และ 5 (Loops 3–5)">
+                  รอบที่ 3-5
+                </button>
+                <button type="button" class="btn-link-sm" id="btnSelectAllCycles">ทุกรอบ</button>
+              </div>
+            </div>
+            <div class="cycle-pills-row" id="cyclePillsContainer"></div>
+
+            <!-- Dynamic Mode Filter -->
+            <div class="filter-sublabel">
+              <span>โหมดการทำงาน (Sensor Mode)</span>
+              <span id="modeFilterHint" style="font-size:10px; color:var(--accent-cyan);">ตรวจจับจากไฟล์อัตโนมัติ</span>
+            </div>
+            <div class="mode-pills-row" id="modePillsContainer"></div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- ====================================================================
+         MAIN VIEWPORT AREA (75% WIDTH)
+         ==================================================================== -->
+    <main class="main-viewport">
+      <!-- Top Status Header (Split & Grouped into Left Data Status Scroll Zone + Right Action Buttons Container) -->
+      <header class="viewport-topbar">
+        <!-- Left/Center Zone: Data Description & Status Pills (Horizontally Scrollable on Overflow) -->
+        <div class="topbar-status-zone">
+          <div class="topbar-left" id="topbarStatusScroll" title="เลื่อนซ้าย-ขวาเพื่อดูรายละเอียดสถานะข้อมูลทั้งหมด">
+            <div class="status-pill">
+              <span>ชุดข้อมูล:</span>
+              <strong id="topStatusDataset">Sampling_*</strong>
+            </div>
+            <div class="status-pill">
+              <span>แกน X/Y/Z:</span>
+              <strong id="topStatusAxes">G13 / G14 / G10</strong>
+            </div>
+            <div class="status-pill" id="topStatusPcaVariancePill" style="display: none; border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.12);">
+              <span>Cumulative Variance (PC1–PC3):</span>
+              <strong id="topStatusPcaCumVar" style="color: #34D399;">0.0%</strong>
+            </div>
+            <div class="status-pill">
+              <span>Baseline:</span>
+              <strong id="topStatusBaseline">Raw Signal</strong>
+            </div>
+            <div class="status-pill">
+              <span>จุดข้อมูลที่แสดง:</span>
+              <strong id="topStatusPoints">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clean Vertical Dividing Line between Status Zone and Action Buttons Zone -->
+        <div class="topbar-zone-divider" aria-hidden="true"></div>
+
+        <!-- Right Zone: Dedicated Action Buttons Container -->
+        <div class="topbar-right">
+          <button type="button" class="btn-action btn-action-analysis" id="btnToggleAnalysisTabs" aria-expanded="false" title="เปิดหรือสลับมุมมองผลการวิเคราะห์กราฟขั้นสูงทั้ง 7 รูปแบบ (7-Tab Analysis Suite)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span id="btnToggleAnalysisTabsLabel">แสดงผลการวิเคราะห์รูปแบบอื่นๆ</span>
+            <span class="analysis-tab-badge">7 Tabs</span>
+          </button>
+          <button type="button" class="btn-action btn-action-emerald" id="btnExportProcessedXlsx" title="ส่งออกผลวิเคราะห์ PCA Scores, Loadings, สถิติกลุ่ม และ Distance Matrix เป็นไฟล์ .xlsx">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>⬇ ส่งออกผลวิเคราะห์ (.xlsx)</span>
+          </button>
+          <button type="button" class="btn-action" id="btnExportPlotPng" title="บันทึกรูปกราฟปัจจุบันเป็นไฟล์ PNG">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>บันทึกภาพกราฟ (PNG)</span>
+          </button>
+          <button type="button" class="btn-kpi-collapse" id="btnToggleKpiStrip" aria-expanded="true" title="ย่อ/ขยายแถบสรุปสถานะการทดลองและคุณภาพข้อมูล (KPI Strip)">
+            <span>KPI</span>
+            <svg class="toggle-arrow-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ====================================================================
+           PART 1: TOP KPI SUMMARY STRIP (4 SCIENTIFIC CARDS, COLLAPSIBLE)
+           ==================================================================== -->
+      <section class="kpi-summary-strip" id="kpiSummaryStrip">
+        <!-- Card 1: Protocol & Cycle Card -->
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-label">1. Protocol &amp; Cycle Loops</span>
+            <span class="badge badge-cyan" id="kpiCycleBadge">Loops: 7/7</span>
+          </div>
+          <div class="kpi-card-main" id="kpiProtocolCode">R10–S120–P60–F200</div>
+          <div class="kpi-card-sub" id="kpiProtocolDesc">Resting 10s • Sampling 120s • Purging 60s • Flow 200</div>
+        </div>
+
+        <!-- Card 2: Active Sensor Status Card -->
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-label">2. Active Sensor Array (Auto-Clean)</span>
+            <span class="badge badge-amber" id="kpiDroppedSensorsBadge" title="เซนเซอร์ที่มีค่าคงที่หรือความแปรปรวนเป็นศูนย์ (Variance = 0) ถูกตัดออกอัตโนมัติ">Var=0 Excluded</span>
+          </div>
+          <div class="kpi-card-main" id="kpiActiveSensorRatio">12 / 15 Active Sensors</div>
+          <div class="kpi-card-sub" id="kpiDroppedSensorsList">เซนเซอร์ที่ตัดออก (Var=0): G4, G9, G15</div>
+        </div>
+
+        <!-- Card 3: PCA Discriminant Power Card -->
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-label">3. PCA Discriminant Power</span>
+            <span class="badge badge-emerald" id="kpiPcaPowerBadge">✓ ≥ 85% Target</span>
+          </div>
+          <div class="kpi-card-main" id="kpiPca3dVariance">3D (PC1–PC3): 91.5%</div>
+          <div class="kpi-card-sub" id="kpiPca2dVariance">2D (PC1+PC2): 86.4% • PC1: 71.1%</div>
+        </div>
+
+        <!-- Card 4: Environment & QC Stability Card -->
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-label">4. Environment &amp; QC Stability</span>
+            <span class="badge badge-emerald" id="kpiQcStatusBadge">Isothermal QC</span>
+          </div>
+          <div class="kpi-card-main" id="kpiTempSummary">Temp: 27.20 ± 0.08 °C</div>
+          <div class="kpi-card-sub" id="kpiFlowSummary">Flow: 150.0 ± 1.2 mL/min [Min–Max]</div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           PART 3: MULTI-VIEW 7-TAB VISUALIZATION SUITE STAGE
+           ==================================================================== -->
+      <div class="plot-stage-container" id="plotStageContainer">
+        <!-- Navigation View Tabs Bar (7 Primary Graph Analysis Tabs, toggled via #btnToggleAnalysisTabs) -->
+        <nav class="view-tabs-bar hidden" id="viewTabsBar" aria-label="ชุดมุมมองกราฟวิเคราะห์ข้อมูลเคโมเมตริกส์ 7 รูปแบบ">
+          <div class="view-tabs-scroll-list">
+            <button type="button" class="view-tab-btn active" data-viewtab="pca3d">
+              <span>🧊 Tab 1: 3D/2D PCA Score Plot</span>
+            </button>
+            <button type="button" class="view-tab-btn" data-viewtab="biplot">
+              <span>🧭 Tab 2: PCA Biplot &amp; Loading Vectors</span>
+            </button>
+            <button type="button" class="view-tab-btn" data-viewtab="scree">
+              <span>📊 Tab 3: Scree Plot &amp; Variance</span>
+            </button>
+            <button type="button" class="view-tab-btn" data-viewtab="radar">
+              <span>🕸️ Tab 4: Odor Radar Chart</span>
+            </button>
+            <button type="button" class="view-tab-btn" data-viewtab="heatmap">
+              <span>🔥 Tab 5: Sensor Heatmap</span>
+            </button>
+            <button type="button" class="view-tab-btn" data-viewtab="timeseries">
+              <span>📈 Tab 6: Time-Series &amp; Drift</span>
+            </button>
+            <button type="button" class="view-tab-btn" data-viewtab="qc">
+              <span>🛡️ Tab 7: QC &amp; Blank Stability</span>
+            </button>
+          </div>
+          <button type="button" class="btn-close-analysis-tabs" id="btnCloseAnalysisTabs" title="ปิดมุมมองแท็บวิเคราะห์ขั้นสูง และกลับสู่หน้ากราฟ 3D หลักโดยคงค่าตัวกรองและมุมกล้องเดิม">
+            <span>↩ กลับกราฟ 3D หลัก</span>
+          </button>
+        </nav>
+
+        <!-- ==================================================================
+             TAB 1: 3D & 2D PCA SCORE PLOT (DEFAULT ACTIVE VIEW)
+             ================================================================== -->
+        <div class="tab-view-pane active" id="tabPane-pca3d">
+          <!-- Sub-Mode Switcher: 3D Space vs 2D Projection + 3D Biplot Vectors & Centroid Toggles -->
+          <div class="tab1-submode-bar" id="pcaSpaceSubmodeBar">
+            <div class="submode-btn-group" id="scoreDimensionSegmented">
+              <button type="button" class="submode-btn active" data-scoredim="3d" title="แสดงกราฟ 3 มิติ (PC1–PC2–PC3 หรือ X–Y–Z) หมุนดูได้ 360 องศา">
+                🧊 3D Space (X–Y–Z)
+              </button>
+              <button type="button" class="submode-btn" data-scoredim="2d" title="แสดงกราฟระนาบ 2 มิติ (PC1 vs PC2 หรือ X vs Y) พร้อมวงรีความเชื่อมั่น 95%">
+                📐 2D Projection (PC1 vs PC2)
+              </button>
+            </div>
+            <label class="submode-check" title="แสดงลูกศรทิศทางอิทธิพลของเซนเซอร์ (Loading Vectors) ซ้อนในกราฟ 3D">
+              <input type="checkbox" id="toggleShow3dBiplot" />
+              <span>🧭 3D Biplot Vectors</span>
+            </label>
+            <label class="submode-check" title="แสดงจุดศูนย์กลางกลุ่ม (Centroid) และป้ายชื่อ">
+              <input type="checkbox" id="toggleShowCentroids" checked />
+              <span>🎯 Centroids</span>
+            </label>
+          </div>
+
+          <!-- Top-Left Overlay Indicator -->
+          <div class="plot-overlay-badge" id="plotFocusBanner">
+            <span style="width:8px; height:8px; border-radius:50%; background:var(--accent-cyan); box-shadow:0 0 8px var(--accent-cyan);" id="focusBannerDot"></span>
+            <span id="focusBannerText">คลิกค้างเพื่อหมุน 360° • เลื่อนลูกกลิ้งเพื่อซูม • คลิกขวาค้างเพื่อเลื่อนแกน (Pan)</span>
+          </div>
+
+          <!-- Unified Top-Right Floating Box: 'มุมมองกราฟ 3D' (Camera View + 3D Area Highlight) -->
+          <div class="floating-toolbar" id="floating3dToolbar">
+            <div class="floating-card unified-view3d-card" id="view3dControlCard">
+              <!-- Header with Arrow Slide Toggle Button -->
+              <div class="unified-card-header" id="view3dCardHeader">
+                <div class="unified-card-title-group">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan);">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                  <span>มุมมองกราฟ 3D</span>
+                </div>
+                <button
+                  type="button"
+                  class="card-slide-toggle-btn"
+                  id="btnToggleView3dCard"
+                  aria-expanded="true"
+                  title="เปิด-ปิดแผงตั้งค่ามุมมองกราฟ 3D"
+                >
+                  <svg class="toggle-arrow-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Sliding Animated Body combining Camera View + 3D Area Highlight -->
+              <div class="unified-card-body" id="view3dCardBody">
+                <!-- Sub-section 1: มุมกล้อง 3 มิติ (Camera View) -->
+                <div class="unified-subsection">
+                  <div class="floating-card-title">
+                    <span>มุมกล้อง 3 มิติ (Camera View)</span>
+                    <button type="button" class="btn-link-sm" id="btnAutoRotate3D" title="หมุนกราฟอัตโนมัติ 360 องศา">
+                      ↻ หมุน 360°
+                    </button>
+                  </div>
+                  <div class="camera-btn-grid">
+                    <button type="button" class="cam-btn active" data-cam="isometric" title="มุมมอง Isometric 3 มิติมาตรฐาน">Iso (Reset)</button>
+                    <button type="button" class="cam-btn" data-cam="top" title="มุมมองด้านบน (ระนาบ X-Y)">Top (XY)</button>
+                    <button type="button" class="cam-btn" data-cam="side" title="มุมมองด้านข้าง (ระนาบ X-Z)">Side (XZ)</button>
+                    <button type="button" class="cam-btn" data-cam="front" title="มุมมองด้านหน้า (ระนาบ Y-Z)">Front (YZ)</button>
+                  </div>
+                </div>
+
+                <div class="unified-divider"></div>
+
+                <!-- Sub-section 2: 3D Area Highlight (Mesh3D Hull) -->
+                <div class="unified-subsection">
+                  <div class="floating-card-title">
+                    <span>3D Area Highlight (Mesh3D Hull)</span>
+                    <label class="switch" style="transform: scale(0.88); transform-origin: right center;">
+                      <input type="checkbox" id="toggleShowAreaHull" checked />
+                      <span class="switch-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="hull-controls-stack">
+                    <!-- Hull Method Selector -->
+                    <div class="segmented-control" id="hullTypeSegmented" style="margin-bottom:2px;">
+                      <button type="button" class="seg-btn active" data-hulltype="convex" style="padding:4px 6px; font-size:11px;">
+                        <span>3D Convex Hull</span>
+                      </button>
+                      <button type="button" class="seg-btn" data-hulltype="ellipsoid" style="padding:4px 6px; font-size:11px;">
+                        <span>3D Ellipsoid (95%)</span>
+                      </button>
+                    </div>
+
+                    <!-- Opacity Slider -->
+                    <div class="slider-row">
+                      <div class="slider-header">
+                        <span>ความโปร่งแสง Area (Opacity)</span>
+                        <span id="hullOpacityValue">0.20</span>
+                      </div>
+                      <input type="range" id="sliderHullOpacity" class="range-slider" min="0.05" max="0.55" step="0.01" value="0.20" />
+                    </div>
+
+                    <!-- Marker Size Slider -->
+                    <div class="slider-row">
+                      <div class="slider-header">
+                        <span>ขนาดจุดข้อมูล (Point Size)</span>
+                        <span id="markerSizeValue">4.5 px</span>
+                      </div>
+                      <input type="range" id="sliderMarkerSize" class="range-slider" min="2" max="9" step="0.5" value="4.5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vertical 3D Rotation Slider Bar (แถบเลื่อนขึ้น-ลงสำหรับหมุนดูกราฟ 3D) -->
+          <div class="plot-rot-vertical-bar" id="rotVerticalBarWrap" title="แถบเลื่อนขึ้น-ลงเพื่อหมุนมุมก้ม-เงยของกราฟ 3 มิติ (Elevation)">
+            <span class="rot-bar-label">ขึ้น-ลง</span>
+            <button type="button" class="rot-step-btn" id="btnRotVertUp" title="เงยขึ้น (+10°)">▲</button>
+            <div class="rot-vertical-track-wrap">
+              <input
+                type="range"
+                id="sliderRotateVertical"
+                class="range-slider rot-vertical-slider"
+                min="-85"
+                max="85"
+                step="1"
+                value="28"
+              />
+            </div>
+            <button type="button" class="rot-step-btn" id="btnRotVertDown" title="ก้มลง (-10°)">▼</button>
+            <span class="rot-angle-readout" id="rotVerticalValue">28°</span>
+          </div>
+
+          <!-- Horizontal 3D Rotation Slider Bar (แถบเลื่อนซ้าย-ขวาสำหรับหมุนดูกราฟ 3D) -->
+          <div class="plot-rot-horizontal-bar" id="rotHorizontalBarWrap" title="แถบเลื่อนซ้าย-ขวาเพื่อหมุนกราฟ 3 มิติรอบทิศทาง (Azimuth)">
+            <span class="rot-bar-label">หมุนซ้าย-ขวา</span>
+            <button type="button" class="rot-step-btn" id="btnRotHorizLeft" title="หมุนซ้าย (-15°)">◀</button>
+            <input
+              type="range"
+              id="sliderRotateHorizontal"
+              class="range-slider rot-horizontal-slider"
+              min="-180"
+              max="180"
+              step="1"
+              value="45"
+            />
+            <button type="button" class="rot-step-btn" id="btnRotHorizRight" title="หมุนขวา (+15°)">▶</button>
+            <span class="rot-angle-readout" id="rotHorizontalValue">45°</span>
+          </div>
+
+          <!-- Plotly 3D Container -->
+          <div id="plot3d"></div>
+          <!-- Plotly 2D Projection Container (PC1 vs PC2 with 2D Confidence Ellipse) -->
+          <div id="plot2dProjection" class="secondary-plot-canvas" style="display: none;"></div>
+        </div>
+
+        <!-- ==================================================================
+             TAB 2: PCA BIPLOT & LOADING VECTORS (G1–G15 CORRELATION CIRCLE)
+             ================================================================== -->
+        <div class="tab-view-pane" id="tabPane-biplot">
+          <!-- Sensor Loading Vectors Toolbar (Master Switch + Individual Sensor Pills G1–Gn) -->
+          <div class="pane-inline-toolbar biplot-vectors-toolbar">
+            <div class="biplot-vector-master-group">
+              <label class="switch" title="เปิด-ปิดการแสดงเส้นเวกเตอร์ลูกศรของเซนเซอร์รับกลิ่นทั้งหมดบนกราฟ Biplot">
+                <input type="checkbox" id="toggleBiplotAllVectors" checked />
+                <span class="switch-slider"></span>
+              </label>
+              <span class="toolbar-title">🧭 เส้นเวกเตอร์เซนเซอร์รับกลิ่น (Sensor Loading Vectors):</span>
+            </div>
+
+            <div class="biplot-sensor-quick-btns">
+              <button type="button" class="btn-link-sm" id="btnBiplotSelectAllSensors" title="เปิดแสดงเส้นเวกเตอร์ของเซนเซอร์ที่ทำงานจริงทั้งหมด">
+                ✓ เลือกทั้งหมด
+              </button>
+              <button type="button" class="btn-link-sm" id="btnBiplotClearAllSensors" title="ซ่อนเส้นเวกเตอร์ของเซนเซอร์ทั้งหมดชั่วคราว">
+                ✕ ล้างทั้งหมด
+              </button>
+            </div>
+
+            <div class="biplot-sensor-pills-scroll" id="biplotSensorPillsContainer" title="คลิกเพื่อเปิด/ปิดเส้นเวกเตอร์ของเซนเซอร์แต่ละตัวแยกอิสระ">
+              <!-- Populated dynamically with G1..Gn pills by app.js -->
+            </div>
+          </div>
+
+          <div class="split-view-layout with-top-toolbar" id="biplotSplitLayout">
+            <div class="split-main-plot">
+              <div id="plotBiplot2d" class="secondary-plot-canvas"></div>
+            </div>
+
+            <aside class="split-side-panel" id="biplotSidePanel">
+              <!-- Slide Toggle Arrow Button for Sensor Loadings Table (matches Left Sidebar Toggle style) -->
+              <button
+                type="button"
+                class="biplot-table-slide-toggle"
+                id="btnToggleBiplotTable"
+                aria-expanded="true"
+                title="เลื่อนเปิด-ปิดตารางน้ำหนักเซนเซอร์ (Sensor Loadings Table)"
+              >
+                <svg class="toggle-arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+
+              <div class="side-panel-inner">
+                <div class="side-panel-header">
+                  <strong>ตารางน้ำหนักเซนเซอร์ (Sensor Loadings Matrix)</strong>
+                  <span class="badge badge-cyan" id="biplotActiveSensorBadge">12 Active</span>
+                </div>
+                <div class="side-panel-scroll" id="biplotLoadingsTableWrap"></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- ==================================================================
+             TAB 3: SCREE PLOT & CUMULATIVE EXPLAINED VARIANCE
+             ================================================================== -->
+        <div class="tab-view-pane" id="tabPane-scree">
+          <div id="plotScree" class="secondary-plot-canvas"></div>
+        </div>
+
+        <!-- ==================================================================
+             TAB 4: ODOR FINGERPRINT RADAR / SPIDER CHART
+             ================================================================== -->
+        <div class="tab-view-pane" id="tabPane-radar">
+          <div class="pane-inline-toolbar">
+            <span class="toolbar-title">🕸️ รูปแบบสเกลลายนิ้วมือกลิ่น (Radar Scale Mode):</span>
+            <div class="submode-btn-group" id="radarScaleSegmented">
+              <button type="button" class="submode-btn active" data-radarscale="zscore">Z-Score Standardized ((X−μ)/σ)</button>
+              <button type="button" class="submode-btn" data-radarscale="norm">Normalized (0–100% Min-Max)</button>
+              <button type="button" class="submode-btn" data-radarscale="raw">Mean Response (ค่าเฉลี่ยจริง)</button>
+            </div>
+          </div>
+          <div id="plotRadar" class="secondary-plot-canvas with-top-toolbar"></div>
+        </div>
+
+        <!-- ==================================================================
+             TAB 5: SENSOR FINGERPRINT HEATMAP (SAMPLE × SENSOR Z-SCORE MATRIX)
+             ================================================================== -->
+        <div class="tab-view-pane" id="tabPane-heatmap">
+          <div class="pane-inline-toolbar">
+            <span class="toolbar-title">🔥 การจัดเรียงแถวตัวอย่าง (Sample Row Ordering):</span>
+            <div class="submode-btn-group" id="heatmapSortSegmented">
+              <button type="button" class="submode-btn active" data-heatmapsort="pc1">เรียงตามคะแนน PC1 (มาก → น้อย)</button>
+              <button type="button" class="submode-btn" data-heatmapsort="name">เรียงตามชื่อตัวอย่าง (A → Z)</button>
+            </div>
+          </div>
+          <div id="plotHeatmap" class="secondary-plot-canvas with-top-toolbar"></div>
+        </div>
+
+        <!-- ==================================================================
+             TAB 6: DYNAMIC SENSOR TIME-SERIES CURVE (RESTING -> SAMPLING -> PURGING)
+             ================================================================== -->
+        <div class="tab-view-pane" id="tabPane-timeseries">
+          <div class="pane-inline-toolbar timeseries-toolbar">
+            <div class="ts-control-group">
+              <label for="tsSourceSelect">ชุดข้อมูล:</label>
+              <select id="tsSourceSelect" class="select-input ts-select">
+                <option value="Raw">Raw_* (Resting → Sampling → Purging)</option>
+                <option value="Sampling">Sampling_* (เฉพาะช่วงดูดกลิ่น)</option>
+              </select>
+            </div>
+            <div class="ts-control-group">
+              <label for="tsModeSelect">โหมดการเปรียบเทียบ:</label>
+              <select id="tsModeSelect" class="select-input ts-select">
+                <option value="compare_samples">เปรียบเทียบหลายตัวอย่าง (เลือก 1 เซนเซอร์)</option>
+                <option value="multi_sensor">ดูทุกเซนเซอร์พร้อมกัน (เลือก 1 ตัวอย่าง)</option>
+              </select>
+            </div>
+            <div class="ts-control-group" id="tsSensorSelectWrap">
+              <label for="tsSensorSelect">เซนเซอร์:</label>
+              <select id="tsSensorSelect" class="select-input ts-select"></select>
+            </div>
+            <div class="ts-control-group" id="tsSampleSelectWrap" style="display:none;">
+              <label for="tsSampleSelect">ตัวอย่าง:</label>
+              <select id="tsSampleSelect" class="select-input ts-select"></select>
+            </div>
+          </div>
+          <div id="plotTimeSeries" class="secondary-plot-canvas with-top-toolbar"></div>
+        </div>
+
+        <!-- ==================================================================
+             TAB 7: QUALITY CONTROL (QC), BLANK STABILITY & DISTANCE MATRIX
+             ================================================================== -->
+        <div class="tab-view-pane" id="tabPane-qc">
+          <div class="pane-inline-toolbar">
+            <span class="toolbar-title">🛡️ โหมดตรวจสอบคุณภาพและสถิติระยะห่าง (QC &amp; Distance Sub-View):</span>
+            <div class="submode-btn-group" id="qcSubmodeSegmented">
+              <button type="button" class="submode-btn active" data-qcsubmode="stability">
+                🌡️ Temp / Flow &amp; Blank Stability
+              </button>
+              <button type="button" class="submode-btn" data-qcsubmode="distance">
+                📏 Euclidean Distance Matrix &amp; Full Stats
+              </button>
+            </div>
+            <div class="submode-btn-group" id="distanceSpaceSegmented" style="display: none;">
+              <button type="button" class="submode-btn active" data-distspace="pca">PCA Space (PC1–PC3)</button>
+              <button type="button" class="submode-btn" data-distspace="zscore">Z-Score Sensor Space</button>
+            </div>
+            <div class="distance-pairs-summary" id="distancePairsBanner" style="display: none;"></div>
+          </div>
+
+          <div class="qc-dual-grid" id="qcDualGridWrap">
+            <div class="qc-chart-box">
+              <div id="plotQcEnv" class="secondary-plot-canvas"></div>
+            </div>
+            <div class="qc-chart-box">
+              <div id="plotQcBlank" class="secondary-plot-canvas"></div>
+            </div>
+          </div>
+
+          <div class="distance-split-layout with-top-toolbar" id="qcDistanceMatrixWrap" style="display: none;">
+            <div class="distance-matrix-box">
+              <div id="plotDistanceMatrix" class="secondary-plot-canvas"></div>
+            </div>
+            <div class="distance-stats-table-box">
+              <div class="side-panel-header">
+                <strong>ตารางสถิติเชิงลึกครบทุกพารามิเตอร์ (Count n, Mean, SD, Median, Min, Max)</strong>
+              </div>
+              <div class="side-panel-scroll" id="fullStatsTableContainer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Summary Cards (แถบสรุปสถิติด้านล่าง พร้อมปุ่มลูกศรเปิด-ปิดทางขวา) -->
+      <footer class="bottom-summary-bar" id="bottomSummaryBar">
+        <div class="summary-bar-header" id="summaryBarHeader">
+          <div class="summary-bar-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan);">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span>สถิติกลุ่มข้อมูลที่กำลังเปิดดู (Active Sample Statistics — Count n, Mean, SD, Median, Min &amp; Max)</span>
+          </div>
+          <div class="summary-bar-right">
+            <div class="summary-kpi-strip">
+              <span>ชนิดที่เลือก: <strong id="summaryActiveClasses">0</strong> ชนิด</span>
+              <span>จำนวนจุดรวม: <strong id="summaryTotalPoints">0</strong> จุด</span>
+              <span>แกนที่วิเคราะห์: <strong id="summaryActiveAxesLabel">G13, G14, G10</strong></span>
+            </div>
+            <button
+              type="button"
+              class="summary-slide-toggle-btn"
+              id="btnToggleBottomSummary"
+              aria-expanded="true"
+              title="เปิด-ปิดกล่องสถิติกลุ่มข้อมูลที่กำลังเปิดดู (Active Sample Statistics)"
+            >
+              <svg class="toggle-arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="summary-cards-scroll" id="summaryCardsContainer">
+          <!-- Populated dynamically by app.js -->
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ====================================================================
+       SITE BOTTOM FOOTER (BOTTOM)
+       ==================================================================== -->
+  <footer class="site-bottom-footer">
+    <div class="site-footer-line site-footer-line-1">SCBT316 Medicinal plants &amp; Industrial processing</div>
+    <div class="site-footer-line site-footer-line-2">Submitted to Asst. Prof. Dr. Sutthichai Boonprasop (Mahidol University)</div>
+  </footer>
+
+  <!-- ====================================================================
+       MODAL: BLANK ASSIGNMENT & SHEET OVERVIEW
+       ==================================================================== -->
+  <div class="modal-backdrop" id="blankModalBackdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <strong style="font-size:14px;">ตารางอ้างอิง BlankAssignment และสรุปชีตในไฟล์ Excel</strong>
+          <span class="badge" id="modalWorkbookBadge">Workbook</span>
+        </div>
+        <button type="button" class="btn-link-sm" id="btnCloseBlankModal">✕ ปิดหน้าต่าง</button>
+      </div>
+      <div class="modal-body" id="blankModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Main Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
