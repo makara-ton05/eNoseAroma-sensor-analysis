@@ -87,13 +87,13 @@
 
     // Multi-View 7-Tab Suite Controls (toggled via 'แสดงผลการวิเคราะห์รูปแบบอื่นๆ')
     analysisSuiteOpen: false, // Whether the 7-tab analysis bar & suite view is open
-    activeViewTab: 'pca3d',   // 'pca3d' | 'biplot' | 'scree' | 'radar' | 'heatmap' | 'timeseries' | 'qc'
+    activeViewTab: 'pca3d',   // 'pca3d' | 'biplot' | 'scree' | 'radar' | 'heatmap' | 'timeseries' | 'qc' | 'distance'
     lastSecondaryTab: 'biplot',
     scoreDimension: '3d',     // '3d' | '2d'
     show3dBiplot: false,      // Overlay 3D sensor loading vectors on 3D PCA plot
     showCentroids: true,      // Show group centroids on 3D / 2D score plots
-    showBiplotVectors: true,  // Master switch: show/hide all sensor loading vectors on Tab 2 Biplot
-    activeBiplotSensors: new Set(), // Individual sensor vectors enabled on Tab 2 Biplot (G1..Gn)
+    showBiplotVectors: true,  // Master switch: show/hide all sensor loading vectors on Tab 1 Biplot
+    activeBiplotSensors: new Set(), // Individual sensor vectors enabled on Tab 1 Biplot (G1..Gn)
     radarScale: 'zscore',     // 'zscore' | 'norm' | 'raw'
     heatmapSort: 'pc1',       // 'pc1' | 'name'
     tsSource: 'Raw',          // 'Raw' | 'Sampling'
@@ -115,12 +115,24 @@
     hullOpacity: 0.20,
     markerSize: 4.5,
     focusedSample: null,
+    lockedNode: null, // Telemetry data for the currently clicked / locked data point
 
     // Plotly trace metadata for Focus Highlight restyling
     traceMeta: [],
     currentCamera: CAMERA_PRESETS.isometric,
     autoRotateTimer: null,
     autoRotateAngle: Math.PI / 4
+  };
+
+  // --------------------------------------------------------------------------
+  // 1b. HIGH-PERFORMANCE MEMOIZATION & GEOMETRY CACHE
+  // --------------------------------------------------------------------------
+  const memoCache = {
+    filterKey: '',
+    dataResult: null,
+    pcaKey: '',
+    pcaResult: null,
+    meshGeometry: new Map() // key -> { x, y, z, i, j, k }
   };
 
   // --------------------------------------------------------------------------
@@ -894,6 +906,14 @@
       toggleExcludeBlanksEl.checked = state.excludeBlanksPca;
     }
 
+    // Clear high-performance memoization caches on new dataset ingest
+    memoCache.filterKey = '';
+    memoCache.dataResult = null;
+    memoCache.pcaKey = '';
+    memoCache.pcaResult = null;
+    memoCache.meshGeometry.clear();
+    state.lockedNode = null;
+
     // 8. Update UI controls dynamically
     updateHeaderAndPipelineUI();
     populateAxisDropdowns();
@@ -1110,8 +1130,25 @@
   /**
    * Filter rows by active Cycles & Modes, apply Baseline Correction (with Per-Cycle Blank support),
    * and apply Cycle Summary aggregation (Mean / Max / ΔMean / ΔMax) when PCA Granularity Mode is 'cycle'.
+   * Optimized with memoCache to guarantee 60 FPS camera rotation & UI responsiveness.
    */
   function getProcessedDataByClass() {
+    const filterKey = [
+      state.activeDataset,
+      state.baselineCorrection,
+      state.perCycleBlank,
+      state.axisMode,
+      state.pcaGranularity,
+      state.pcaSummaryMethod,
+      Array.from(state.activeCycles).sort().join(','),
+      Array.from(state.activeModes).sort().join(','),
+      Array.from(state.activeSamples).sort().join(',')
+    ].join('|');
+
+    if (memoCache.filterKey === filterKey && memoCache.dataResult) {
+      return memoCache.dataResult;
+    }
+
     const datasetKey = state.activeDataset;
     const rawDs = state.datasets[datasetKey] || {};
     const baselines = state.baselineCorrection ? computeBlankBaselines(datasetKey) : null;
@@ -1184,7 +1221,9 @@
       }
     }
 
-    return { resultByClass, allFilteredRows, allGlobalRows };
+    memoCache.filterKey = filterKey;
+    memoCache.dataResult = { resultByClass, allFilteredRows, allGlobalRows };
+    return memoCache.dataResult;
   }
 
   // --------------------------------------------------------------------------
@@ -1894,7 +1933,22 @@
       : baseScopeRows;
 
     const pcaBasisRows = nonBlankScopeRows.length >= 3 ? nonBlankScopeRows : baseScopeRows;
-    const pca = computePCA3D(pcaBasisRows, state.pcaStandardize);
+
+    const pcaKey = [
+      memoCache.filterKey,
+      state.pcaFitScope,
+      state.excludeBlanksPca,
+      state.pcaStandardize
+    ].join('|');
+
+    let pca;
+    if (memoCache.pcaKey === pcaKey && memoCache.pcaResult) {
+      pca = memoCache.pcaResult;
+    } else {
+      pca = computePCA3D(pcaBasisRows, state.pcaStandardize);
+      memoCache.pcaKey = pcaKey;
+      memoCache.pcaResult = pca;
+    }
     state.pcaResult = pca;
 
     // Update PCA Sidebar Info Panel
@@ -1983,7 +2037,8 @@
           r['Mode'],
           r['Time'],
           s.groupLabel,
-          s.shapeName || 'วงกลมทึบ (Circle)'
+          s.shapeName || 'วงกลมทึบ (Circle)',
+          r
         ];
       }
 
@@ -2057,12 +2112,26 @@
         traceMeta.push({ sampleId: s.id, traceType: 'centroid', color: s.color });
       }
 
-      // Layer 2: Paired 3D Area Highlight (mesh3d Convex Hull / Confidence Ellipsoid)
+      // Layer 2: Paired 3D Area Highlight (mesh3d Convex Hull / Confidence Ellipsoid with memoization)
       if (state.showAreaHull && rows.length >= 3) {
-        const pts3D = xs.map((x, idx) => [x, ys[idx], zs[idx]]);
-        const meshGeom = (state.hullType === 'ellipsoid' || rows.length < 4)
-          ? computeEllipsoidMesh3D(pts3D)
-          : computeConvexHullMesh3D(pts3D);
+        const meshKey = [
+          s.id,
+          state.hullType,
+          rows.length,
+          memoCache.filterKey,
+          state.axisMode === 'pca' ? memoCache.pcaKey : ''
+        ].join('|');
+
+        let meshGeom = memoCache.meshGeometry.get(meshKey);
+        if (!meshGeom) {
+          const pts3D = xs.map((x, idx) => [x, ys[idx], zs[idx]]);
+          meshGeom = (state.hullType === 'ellipsoid' || rows.length < 4)
+            ? computeEllipsoidMesh3D(pts3D)
+            : computeConvexHullMesh3D(pts3D);
+          if (meshGeom) {
+            memoCache.meshGeometry.set(meshKey, meshGeom);
+          }
+        }
 
         if (meshGeom) {
           traces.push({
@@ -2160,13 +2229,18 @@
     const plot3dEl = document.getElementById('plot3d');
     const plot2dEl = document.getElementById('plot2dProjection');
     const floating3dToolbar = document.getElementById('floating3dToolbar');
+    const view3dControlCard = document.getElementById('view3dControlCard');
+    const plotFocusBanner = document.getElementById('plotFocusBanner');
     const rotVertWrap = document.getElementById('rotVerticalBarWrap');
     const rotHorizWrap = document.getElementById('rotHorizontalBarWrap');
 
     if (state.scoreDimension === '2d') {
       if (plot3dEl) plot3dEl.style.display = 'none';
       if (plot2dEl) plot2dEl.style.display = 'block';
-      if (floating3dToolbar) floating3dToolbar.style.display = 'none';
+      // Requirement 1.2: Keep floating toolbar & lockedTelemetryCard visible, hide only 3D camera controls
+      if (floating3dToolbar) floating3dToolbar.style.display = 'flex';
+      if (view3dControlCard) view3dControlCard.style.display = 'none';
+      if (plotFocusBanner) plotFocusBanner.style.display = 'none';
       if (rotVertWrap) rotVertWrap.style.display = 'none';
       if (rotHorizWrap) rotHorizWrap.style.display = 'none';
       render2DScoreProjection(resultByClass, getXYZ, axisTitleX, axisTitleY, pca);
@@ -2174,6 +2248,8 @@
       if (plot3dEl) plot3dEl.style.display = 'block';
       if (plot2dEl) plot2dEl.style.display = 'none';
       if (floating3dToolbar) floating3dToolbar.style.display = 'flex';
+      if (view3dControlCard) view3dControlCard.style.display = 'block';
+      if (plotFocusBanner && state.focusedSample) plotFocusBanner.style.display = 'flex';
       if (rotVertWrap) rotVertWrap.style.display = 'flex';
       if (rotHorizWrap) rotHorizWrap.style.display = 'flex';
 
@@ -2255,13 +2331,23 @@
           }
         });
       }
+
+      if (!plot3dEl._hasClickTelemetry) {
+        plot3dEl._hasClickTelemetry = true;
+        plot3dEl.on('plotly_click', ev => {
+          handlePlotlyClickTelemetry(ev);
+        });
+      }
     }
 
-    // Render active secondary tab if user is viewing Tabs 2–8
+    // Render active secondary tab if user is viewing Tabs 1–7 (Lazy secondary tab render)
     renderActiveSecondaryTab(resultByClass, pca, getXYZ, axisTitleX, axisTitleY, axisTitleZ);
 
     updateTopStatusHeader(axisTitleX, axisTitleY, axisTitleZ, totalVisiblePoints);
     renderBottomSummaryCards(resultByClass, getXYZ, axisTitleX, axisTitleY, axisTitleZ, totalVisiblePoints);
+
+    // Refresh telemetry panel if a node is locked
+    renderLockedTelemetry();
   }
 
   /**
@@ -2284,7 +2370,15 @@
         const [x, y] = getXYZ(rows[i]);
         xs.push(x);
         ys.push(y);
-        custom.push([s.label, rows[i]['Cycle Loop'], rows[i]['Mode'], rows[i]['Time']]);
+        custom.push([
+          s.label,
+          rows[i]['Cycle Loop'],
+          rows[i]['Mode'],
+          rows[i]['Time'],
+          s.groupLabel,
+          s.shapeName || 'วงกลมทึบ (Circle)',
+          rows[i]
+        ]);
       }
 
       // 2D Confidence Ellipse (95%)
@@ -2368,12 +2462,21 @@
     };
 
     Plotly.react(plot2dEl, traces, layout, { responsive: true, displaylogo: false });
+
+    if (!plot2dEl._hasClickTelemetry) {
+      plot2dEl._hasClickTelemetry = true;
+      plot2dEl.on('plotly_click', ev => {
+        handlePlotlyClickTelemetry(ev);
+      });
+    }
   }
 
   /**
-   * Dispatch rendering for the active secondary tab (Tabs 2–7)
+   * Dispatch rendering for the active secondary tab (Tabs 1–7)
+   * Optimized with Lazy Rendering: Only render the currently opened secondary tab.
    */
   function renderActiveSecondaryTab(resultByClass, pca, getXYZ, axisTitleX, axisTitleY, axisTitleZ) {
+    if (!state.analysisSuiteOpen) return;
     switch (state.activeViewTab) {
       case 'biplot':
         renderBiplotTab(resultByClass, pca);
@@ -2391,11 +2494,7 @@
         renderTimeSeriesTab();
         break;
       case 'qc':
-        if (state.qcSubmode === 'distance') {
-          renderDistanceTab(resultByClass, pca, getXYZ, axisTitleX, axisTitleY, axisTitleZ);
-        } else {
-          renderQcTab(resultByClass);
-        }
+        renderQcTab(resultByClass);
         break;
       case 'distance':
         renderDistanceTab(resultByClass, pca, getXYZ, axisTitleX, axisTitleY, axisTitleZ);
@@ -2403,6 +2502,195 @@
       default:
         break;
     }
+  }
+
+  /**
+   * Handle Plotly Click event on 3D or 2D scatter plots to lock data point for Telemetry Inspection
+   */
+  function handlePlotlyClickTelemetry(ev) {
+    if (!ev || !ev.points || ev.points.length === 0) return;
+    const pt = ev.points[0];
+    if (!pt || !pt.customdata || !Array.isArray(pt.customdata) || pt.customdata.length < 4) return;
+
+    const [sampleLabel, cycleLoop, mode, time, groupLabel, shapeName, rawRow] = pt.customdata;
+    const row = rawRow || {};
+    const sampleId = row.sample || sampleLabel;
+    const sampleObj = state.sampleMap[sampleId] || {
+      id: sampleId,
+      label: sampleLabel,
+      color: (pt.data && pt.data.marker && pt.data.marker.color) || '#38BDF8',
+      shapeIcon: '●',
+      shapeName: shapeName || 'Circle',
+      groupLabel: groupLabel || 'Sample',
+      assignedBlank: row._assignedBlank || state.blankAssignment[sampleId] || null
+    };
+
+    state.lockedNode = {
+      sampleId,
+      sampleObj,
+      label: sampleLabel,
+      cycleLoop: cycleLoop ?? row['Cycle Loop'] ?? '-',
+      mode: mode ?? row['Mode'] ?? '-',
+      time: time ?? row['Time'] ?? '-',
+      groupLabel: groupLabel || sampleObj.groupLabel,
+      shapeIcon: sampleObj.shapeIcon || '●',
+      shapeName: shapeName || sampleObj.shapeName || 'Circle',
+      color: sampleObj.color || '#38BDF8',
+      x: typeof pt.x === 'number' ? pt.x : null,
+      y: typeof pt.y === 'number' ? pt.y : null,
+      z: typeof pt.z === 'number' ? pt.z : null,
+      row
+    };
+
+    renderLockedTelemetry();
+  }
+
+  /**
+   * Render deep telemetry details for the locked data point inside #lockedTelemetryCard
+   */
+  function renderLockedTelemetry() {
+    const emptyStateEl = document.getElementById('telemetryEmptyState');
+    const contentEl = document.getElementById('telemetryContent');
+    const unlockBtn = document.getElementById('btnUnlockTelemetry');
+    if (!emptyStateEl || !contentEl) return;
+
+    if (!state.lockedNode) {
+      emptyStateEl.style.display = 'flex';
+      contentEl.style.display = 'none';
+      contentEl.innerHTML = '';
+      if (unlockBtn) unlockBtn.style.display = 'none';
+      return;
+    }
+
+    if (unlockBtn) unlockBtn.style.display = 'inline-flex';
+    emptyStateEl.style.display = 'none';
+    contentEl.style.display = 'flex';
+
+    const node = state.lockedNode;
+    const s = node.sampleObj;
+    const row = node.row || {};
+
+    // 1. Coordinates formatting (PC1..PC3 or X..Z)
+    let axisXTitle = state.customAxes.x || 'X';
+    let axisYTitle = state.customAxes.y || 'Y';
+    let axisZTitle = state.customAxes.z || 'Z';
+    if (state.axisMode === 'pca' && state.pcaResult) {
+      const [v1, v2, v3] = state.pcaResult.explainedVariance;
+      axisXTitle = `PC1 (${v1.toFixed(1)}%)`;
+      axisYTitle = `PC2 (${v2.toFixed(1)}%)`;
+      axisZTitle = `PC3 (${v3.toFixed(1)}%)`;
+    }
+
+    const coordX = node.x !== null ? Number(node.x).toFixed(4) : '-';
+    const coordY = node.y !== null ? Number(node.y).toFixed(4) : '-';
+    const coordZ = node.z !== null ? Number(node.z).toFixed(4) : (state.scoreDimension === '2d' ? 'N/A (2D Mode)' : '-');
+
+    // 2. Environmental readings
+    const tempVal = typeof row.Temp === 'number'
+      ? `${row.Temp.toFixed(2)} °C`
+      : (typeof row['Temp(°C)'] === 'number' ? `${row['Temp(°C)'].toFixed(2)} °C` : '-');
+    const flowVal = typeof row['Flow Rate'] === 'number'
+      ? `${row['Flow Rate'].toFixed(1)} mL/min`
+      : (typeof row['Flow Rate(mL/min)'] === 'number' ? `${row['Flow Rate(mL/min)'].toFixed(1)} mL/min` : '-');
+
+    // 3. Assigned Blank & Baseline
+    const assignedBlank = row._assignedBlank || s.assignedBlank || state.blankAssignment[s.id] || null;
+    const blankText = assignedBlank ? assignedBlank : 'ไม่มี Blank จับคู่';
+    const baselineStatus = state.baselineCorrection
+      ? (state.perCycleBlank ? 'หักลบ Baseline (Per-Cycle ΔBlank)' : 'หักลบ Baseline (Overall ΔBlank)')
+      : 'Raw Signal (ไม่ได้หักลบ)';
+
+    // 4. Sensors grid (G1..Gn) with dimmed/muted styling for auto-cleaned Variance=0 sensors
+    const dropped = (state.pcaResult && state.pcaResult.droppedSensors) || [];
+    const sensorItemsHtml = state.sensorCols.map(col => {
+      const isDropped = dropped.includes(col);
+      const val = typeof row[col] === 'number' ? Number(row[col]).toFixed(4) : '-';
+      return `
+        <div class="telemetry-sensor-item ${isDropped ? 'muted' : ''}" title="${escapeHtml(col)}${isDropped ? ' (ตัดออก Variance=0)' : ''}">
+          <span class="sensor-name">${escapeHtml(col)}${isDropped ? '*' : ''}</span>
+          <span class="sensor-val">${val}</span>
+        </div>
+      `;
+    }).join('');
+
+    contentEl.innerHTML = `
+      <div class="telemetry-hero">
+        <div class="telemetry-sample-icon" style="background:${s.color}22; border-color:${s.color}; color:${s.color};">
+          ${escapeHtml(node.shapeIcon || '●')}
+        </div>
+        <div class="telemetry-hero-text">
+          <div class="telemetry-sample-name" title="${escapeHtml(node.label)}">${escapeHtml(node.label)}</div>
+          <div class="telemetry-sample-group">${escapeHtml(node.groupLabel)} • ${escapeHtml(node.shapeName)}</div>
+        </div>
+      </div>
+
+      <div class="telemetry-meta-grid">
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">รอบการวัด (Loop)</span>
+          <span class="telemetry-stat-val" style="color:var(--accent-cyan);">#${escapeHtml(String(node.cycleLoop))}</span>
+        </div>
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">โหมด (Mode)</span>
+          <span class="telemetry-stat-val">${escapeHtml(String(node.mode))}</span>
+        </div>
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">เวลา (Time)</span>
+          <span class="telemetry-stat-val">${escapeHtml(String(node.time))}</span>
+        </div>
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">Blank อ้างอิง</span>
+          <span class="telemetry-stat-val" style="font-size:10px; color:${assignedBlank ? 'var(--accent-emerald)' : 'var(--text-muted)'};" title="${escapeHtml(blankText)}">${escapeHtml(blankText)}</span>
+        </div>
+      </div>
+
+      <div class="telemetry-section-title">
+        <span>พิกัดเวกเตอร์ (${state.scoreDimension.toUpperCase()})</span>
+      </div>
+      <div class="telemetry-coord-grid">
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">${escapeHtml(axisXTitle)}</span>
+          <span class="telemetry-stat-val" style="color:#38BDF8;">${coordX}</span>
+        </div>
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">${escapeHtml(axisYTitle)}</span>
+          <span class="telemetry-stat-val" style="color:#34D399;">${coordY}</span>
+        </div>
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">${escapeHtml(axisZTitle)}</span>
+          <span class="telemetry-stat-val" style="color:#F472B6;">${coordZ}</span>
+        </div>
+      </div>
+
+      <div class="telemetry-section-title">
+        <span>สภาวะแวดล้อมขณะวัด</span>
+      </div>
+      <div class="telemetry-meta-grid">
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">อุณหภูมิ (Temp)</span>
+          <span class="telemetry-stat-val" style="color:var(--accent-amber);">${tempVal}</span>
+        </div>
+        <div class="telemetry-stat-box">
+          <span class="telemetry-stat-label">Flow Rate</span>
+          <span class="telemetry-stat-val" style="color:var(--accent-cyan);">${flowVal}</span>
+        </div>
+      </div>
+
+      <div class="telemetry-section-title">
+        <span>สัญญาณเซนเซอร์ (${state.sensorCols.length} Sensors)</span>
+        <span style="font-size:9px; font-weight:normal; text-transform:none; color:var(--text-muted);">${escapeHtml(baselineStatus)}</span>
+      </div>
+      <div class="telemetry-sensors-grid">
+        ${sensorItemsHtml}
+      </div>
+    `;
+  }
+
+  /**
+   * Unlock telemetry data and reset #lockedTelemetryCard to empty state
+   */
+  function unlockNodeTelemetry() {
+    state.lockedNode = null;
+    renderLockedTelemetry();
   }
 
   /**
@@ -4694,22 +4982,28 @@
       });
     });
 
-    // 5. Dynamic Sample Search Input
+    // 5. Dynamic Sample Search Input (Debounced ~120ms for zero-jank typing)
+    let searchDebounceTimer = null;
     const searchInput = document.getElementById('sampleSearchInput');
     const clearSearchBtn = document.getElementById('btnClearSampleSearch');
     if (searchInput) {
       searchInput.addEventListener('input', e => {
-        state.sampleSearchQuery = e.target.value;
+        const val = e.target.value;
         if (clearSearchBtn) {
-          clearSearchBtn.style.display = state.sampleSearchQuery ? 'block' : 'none';
+          clearSearchBtn.style.display = val ? 'block' : 'none';
         }
-        renderSampleTogglePills();
-        const { resultByClass } = getProcessedDataByClass();
-        updateSampleTogglesUI(resultByClass);
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+          state.sampleSearchQuery = val;
+          renderSampleTogglePills();
+          const { resultByClass } = getProcessedDataByClass();
+          updateSampleTogglesUI(resultByClass);
+        }, 120);
       });
     }
     if (clearSearchBtn && searchInput) {
       clearSearchBtn.addEventListener('click', () => {
+        clearTimeout(searchDebounceTimer);
         state.sampleSearchQuery = '';
         searchInput.value = '';
         clearSearchBtn.style.display = 'none';
@@ -5099,6 +5393,32 @@
       });
     }
 
+    // 8c. Prominent 'Locked Node Telemetry' Card Slide Toggle & Unlock Button
+    const lockedCard = document.getElementById('lockedTelemetryCard');
+    const lockedHeader = document.getElementById('lockedTelemetryHeader');
+    const btnToggleTelemetryCard = document.getElementById('btnToggleTelemetryCard');
+    const btnUnlockTelemetry = document.getElementById('btnUnlockTelemetry');
+
+    if (lockedCard && lockedHeader && btnToggleTelemetryCard) {
+      const toggleTelemetryBox = e => {
+        if (e.target && (e.target.id === 'btnUnlockTelemetry' || e.target.closest('#btnUnlockTelemetry'))) {
+          return;
+        }
+        e.stopPropagation();
+        const isCollapsed = lockedCard.classList.toggle('collapsed');
+        btnToggleTelemetryCard.setAttribute('aria-expanded', String(!isCollapsed));
+      };
+      btnToggleTelemetryCard.addEventListener('click', toggleTelemetryBox);
+      lockedHeader.addEventListener('click', toggleTelemetryBox);
+    }
+
+    if (btnUnlockTelemetry) {
+      btnUnlockTelemetry.addEventListener('click', e => {
+        e.stopPropagation();
+        unlockNodeTelemetry();
+      });
+    }
+
     // 9. Vertical (Up-Down) & Horizontal (Left-Right) 3D Rotation Sliders
     const sliderVert = document.getElementById('sliderRotateVertical');
     const sliderHoriz = document.getElementById('sliderRotateHorizontal');
@@ -5243,7 +5563,14 @@
       }
     });
 
-    window.addEventListener('resize', resizeActivePlots);
+    let resizeRaf = null;
+    window.addEventListener('resize', () => {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = null;
+        resizeActivePlots();
+      });
+    });
   }
 
   function syncSlidersFromCamera(cam) {
@@ -5264,6 +5591,18 @@
     if (horizReadout) horizReadout.textContent = `${azDeg}°`;
     if (vertReadout) vertReadout.textContent = `${elDeg}°`;
     state.autoRotateAngle = (azDeg * Math.PI) / 180;
+  }
+
+  let cameraRelayoutRaf = null;
+  function scheduleCameraRelayout(cam) {
+    if (cameraRelayoutRaf) return;
+    cameraRelayoutRaf = requestAnimationFrame(() => {
+      cameraRelayoutRaf = null;
+      const plotEl = document.getElementById('plot3d');
+      if (plotEl && plotEl._fullLayout && plotEl._fullLayout.scene) {
+        Plotly.relayout(plotEl, { 'scene.camera': cam });
+      }
+    });
   }
 
   function rotateCameraFromSliders(azimuthDeg, elevationDeg) {
@@ -5291,15 +5630,16 @@
     if (horizReadout) horizReadout.textContent = `${Math.round(azimuthDeg)}°`;
     if (vertReadout) vertReadout.textContent = `${Math.round(elevationDeg)}°`;
 
-    const plotEl = document.getElementById('plot3d');
-    if (plotEl) {
-      Plotly.relayout(plotEl, { 'scene.camera': newCam });
-    }
+    scheduleCameraRelayout(newCam);
   }
 
   function stopAutoRotate() {
     if (state.autoRotateTimer) {
-      clearInterval(state.autoRotateTimer);
+      if (typeof state.autoRotateTimer === 'number') {
+        cancelAnimationFrame(state.autoRotateTimer);
+      } else {
+        clearInterval(state.autoRotateTimer);
+      }
       state.autoRotateTimer = null;
       const btn = document.getElementById('btnAutoRotate3D');
       if (btn) btn.textContent = '↻ หมุน 360°';
@@ -5314,8 +5654,13 @@
     }
     btn.textContent = '⏸ หยุดหมุน';
     const radius = 2.15;
-    state.autoRotateTimer = setInterval(() => {
-      state.autoRotateAngle += 0.035;
+    let lastTime = performance.now();
+
+    function autoRotateLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+      state.autoRotateAngle += 0.8 * dt; // ~0.8 rad/s 60 FPS smooth rotation
+
       const cam = {
         eye: {
           x: radius * Math.cos(state.autoRotateAngle),
@@ -5328,8 +5673,14 @@
       state.currentCamera = cam;
       syncSlidersFromCamera(cam);
       const plotEl = document.getElementById('plot3d');
-      if (plotEl) Plotly.relayout(plotEl, { 'scene.camera': cam });
-    }, 45);
+      if (plotEl && plotEl._fullLayout && plotEl._fullLayout.scene) {
+        Plotly.relayout(plotEl, { 'scene.camera': cam });
+      }
+      if (state.autoRotateTimer) {
+        state.autoRotateTimer = requestAnimationFrame(autoRotateLoop);
+      }
+    }
+    state.autoRotateTimer = requestAnimationFrame(autoRotateLoop);
   }
 
   async function initApp() {

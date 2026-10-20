@@ -623,26 +623,26 @@
         <!-- Navigation View Tabs Bar (7 Primary Graph Analysis Tabs, toggled via #btnToggleAnalysisTabs) -->
         <nav class="view-tabs-bar hidden" id="viewTabsBar" aria-label="ชุดมุมมองกราฟวิเคราะห์ข้อมูลเคโมเมตริกส์ 7 รูปแบบ">
           <div class="view-tabs-scroll-list">
-            <button type="button" class="view-tab-btn active" data-viewtab="pca3d">
-              <span>🧊 Tab 1: 3D/2D PCA Score Plot</span>
-            </button>
-            <button type="button" class="view-tab-btn" data-viewtab="biplot">
-              <span>🧭 Tab 2: PCA Biplot &amp; Loading Vectors</span>
+            <button type="button" class="view-tab-btn active" data-viewtab="biplot">
+              <span>🧭 Tab 1: PCA Biplot &amp; Loadings</span>
             </button>
             <button type="button" class="view-tab-btn" data-viewtab="scree">
-              <span>📊 Tab 3: Scree Plot &amp; Variance</span>
+              <span>📊 Tab 2: Scree Plot &amp; Variance</span>
             </button>
             <button type="button" class="view-tab-btn" data-viewtab="radar">
-              <span>🕸️ Tab 4: Odor Radar Chart</span>
+              <span>🕸️ Tab 3: Odor Radar Chart</span>
             </button>
             <button type="button" class="view-tab-btn" data-viewtab="heatmap">
-              <span>🔥 Tab 5: Sensor Heatmap</span>
+              <span>🔥 Tab 4: Sensor Heatmap</span>
             </button>
             <button type="button" class="view-tab-btn" data-viewtab="timeseries">
-              <span>📈 Tab 6: Time-Series &amp; Drift</span>
+              <span>📈 Tab 5: Time-Series &amp; Drift</span>
             </button>
             <button type="button" class="view-tab-btn" data-viewtab="qc">
-              <span>🛡️ Tab 7: QC &amp; Blank Stability</span>
+              <span>🛡️ Tab 6: QC &amp; Blank Stability</span>
+            </button>
+            <button type="button" class="view-tab-btn" data-viewtab="distance">
+              <span>📏 Tab 7: Distance Matrix &amp; Stats</span>
             </button>
           </div>
           <button type="button" class="btn-close-analysis-tabs" id="btnCloseAnalysisTabs" title="ปิดมุมมองแท็บวิเคราะห์ขั้นสูง และกลับสู่หน้ากราฟ 3D หลักโดยคงค่าตัวกรองและมุมกล้องเดิม">
@@ -768,6 +768,52 @@
                 </div>
               </div>
             </div>
+
+            <!-- Prominent Large Locked Node Telemetry Card -->
+            <div class="floating-card locked-telemetry-card" id="lockedTelemetryCard">
+              <div class="unified-card-header" id="lockedTelemetryHeader">
+                <div class="unified-card-title-group">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan);">
+                    <path d="M12 2v8"/>
+                    <path d="m4.93 10.93 1.41 1.41"/>
+                    <path d="M2 18h2"/>
+                    <path d="M20 18h2"/>
+                    <path d="m19.07 10.93-1.41 1.41"/>
+                    <path d="M22 22H2"/>
+                    <path d="m8 22 4-10 4 10"/>
+                  </svg>
+                  <span class="telemetry-card-title">📌 Locked Node Telemetry</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:5px;">
+                  <button type="button" class="btn-unlock-node" id="btnUnlockTelemetry" title="ปลดล็อกจุดข้อมูลที่เลือก">
+                    ✕ ปลดล็อก
+                  </button>
+                  <button
+                    type="button"
+                    class="card-slide-toggle-btn"
+                    id="btnToggleTelemetryCard"
+                    aria-expanded="true"
+                    title="เปิด-ปิดแผง Locked Node Telemetry"
+                  >
+                    <svg class="toggle-arrow-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="telemetry-card-body" id="lockedTelemetryBody">
+                <div class="telemetry-empty-state" id="telemetryEmptyState">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="opacity:0.65; color:var(--accent-cyan); margin-bottom:2px;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <span>คลิกที่จุดข้อมูลบนกราฟ (3D/2D) เพื่อล็อกและดูข้อมูล Telemetry เชิงลึก</span>
+                </div>
+                <div class="telemetry-content" id="telemetryContent" style="display:none;"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Vertical 3D Rotation Slider Bar (แถบเลื่อนขึ้น-ลงสำหรับหมุนดูกราฟ 3D) -->
@@ -813,7 +859,7 @@
         </div>
 
         <!-- ==================================================================
-             TAB 2: PCA BIPLOT & LOADING VECTORS (G1–G15 CORRELATION CIRCLE)
+             TAB 1: PCA BIPLOT & LOADING VECTORS (G1–G15 CORRELATION CIRCLE)
              ================================================================== -->
         <div class="tab-view-pane" id="tabPane-biplot">
           <!-- Sensor Loading Vectors Toolbar (Master Switch + Individual Sensor Pills G1–Gn) -->
@@ -871,14 +917,14 @@
         </div>
 
         <!-- ==================================================================
-             TAB 3: SCREE PLOT & CUMULATIVE EXPLAINED VARIANCE
+             TAB 2: SCREE PLOT & CUMULATIVE EXPLAINED VARIANCE
              ================================================================== -->
         <div class="tab-view-pane" id="tabPane-scree">
           <div id="plotScree" class="secondary-plot-canvas"></div>
         </div>
 
         <!-- ==================================================================
-             TAB 4: ODOR FINGERPRINT RADAR / SPIDER CHART
+             TAB 3: ODOR FINGERPRINT RADAR / SPIDER CHART
              ================================================================== -->
         <div class="tab-view-pane" id="tabPane-radar">
           <div class="pane-inline-toolbar">
@@ -893,7 +939,7 @@
         </div>
 
         <!-- ==================================================================
-             TAB 5: SENSOR FINGERPRINT HEATMAP (SAMPLE × SENSOR Z-SCORE MATRIX)
+             TAB 4: SENSOR FINGERPRINT HEATMAP (SAMPLE × SENSOR Z-SCORE MATRIX)
              ================================================================== -->
         <div class="tab-view-pane" id="tabPane-heatmap">
           <div class="pane-inline-toolbar">
@@ -907,7 +953,7 @@
         </div>
 
         <!-- ==================================================================
-             TAB 6: DYNAMIC SENSOR TIME-SERIES CURVE (RESTING -> SAMPLING -> PURGING)
+             TAB 5: DYNAMIC SENSOR TIME-SERIES CURVE (RESTING -> SAMPLING -> PURGING)
              ================================================================== -->
         <div class="tab-view-pane" id="tabPane-timeseries">
           <div class="pane-inline-toolbar timeseries-toolbar">
@@ -938,24 +984,11 @@
         </div>
 
         <!-- ==================================================================
-             TAB 7: QUALITY CONTROL (QC), BLANK STABILITY & DISTANCE MATRIX
+             TAB 6: QUALITY CONTROL (QC) & BLANK STABILITY
              ================================================================== -->
         <div class="tab-view-pane" id="tabPane-qc">
           <div class="pane-inline-toolbar">
-            <span class="toolbar-title">🛡️ โหมดตรวจสอบคุณภาพและสถิติระยะห่าง (QC &amp; Distance Sub-View):</span>
-            <div class="submode-btn-group" id="qcSubmodeSegmented">
-              <button type="button" class="submode-btn active" data-qcsubmode="stability">
-                🌡️ Temp / Flow &amp; Blank Stability
-              </button>
-              <button type="button" class="submode-btn" data-qcsubmode="distance">
-                📏 Euclidean Distance Matrix &amp; Full Stats
-              </button>
-            </div>
-            <div class="submode-btn-group" id="distanceSpaceSegmented" style="display: none;">
-              <button type="button" class="submode-btn active" data-distspace="pca">PCA Space (PC1–PC3)</button>
-              <button type="button" class="submode-btn" data-distspace="zscore">Z-Score Sensor Space</button>
-            </div>
-            <div class="distance-pairs-summary" id="distancePairsBanner" style="display: none;"></div>
+            <span class="toolbar-title">🛡️ ตรวจสอบเสถียรภาพอุณหภูมิ, อัตราการไหล และ Blank Baseline (QC Stability):</span>
           </div>
 
           <div class="qc-dual-grid" id="qcDualGridWrap">
@@ -966,8 +999,22 @@
               <div id="plotQcBlank" class="secondary-plot-canvas"></div>
             </div>
           </div>
+        </div>
 
-          <div class="distance-split-layout with-top-toolbar" id="qcDistanceMatrixWrap" style="display: none;">
+        <!-- ==================================================================
+             TAB 7: EUCLIDEAN DISTANCE MATRIX & FULL PARAMETER STATS
+             ================================================================== -->
+        <div class="tab-view-pane" id="tabPane-distance">
+          <div class="pane-inline-toolbar">
+            <span class="toolbar-title">📏 เมทริกซ์ระยะห่างและตารางสถิติเชิงลึกครบทุกพารามิเตอร์ (Distance Matrix &amp; Stats):</span>
+            <div class="submode-btn-group" id="distanceSpaceSegmented">
+              <button type="button" class="submode-btn active" data-distspace="pca">PCA Space (PC1–PC3)</button>
+              <button type="button" class="submode-btn" data-distspace="zscore">Z-Score Sensor Space</button>
+            </div>
+            <div class="distance-pairs-summary" id="distancePairsBanner"></div>
+          </div>
+
+          <div class="distance-split-layout with-top-toolbar" id="qcDistanceMatrixWrap">
             <div class="distance-matrix-box">
               <div id="plotDistanceMatrix" class="secondary-plot-canvas"></div>
             </div>
